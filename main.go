@@ -6,7 +6,6 @@ import (
 
 func main() {   
     LOG = 1
-
     main := []byte {
         IMM,
         0, 0, 0, 0,
