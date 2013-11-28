@@ -14,6 +14,7 @@ const (
     IMM
     ADD
     FORK
+    SUSPEND
     RET
 )
 
@@ -109,6 +110,15 @@ func enqueue(prog *Program, delay int, vector int) {
     }()    
 }
 
+func suspend(vm *VM, delay int) {
+    go func() {
+        if delay > 0 {
+            time.Sleep(time.Duration(delay) * time.Second)
+        }        
+        rt <- vm
+    }()
+}
+
 func run(vm *VM) Var {
     a, ok := vm.Pop()
     if !ok {
@@ -144,6 +154,12 @@ func run(vm *VM) Var {
                 continue
             }
             return result
+        case SUSPEND:
+            d := toInt(v[a.PC:a.PC + 4])
+            a.PC += 4
+            vm.Push(a)
+            suspend(vm, d)
+            return NewInt(0)
         case FORK:
             i := toInt(v[a.PC:a.PC + 4])
             a.PC += 4
