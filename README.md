@@ -1,3 +1,3 @@
 Aki
 ===
-This is a port of LambdaMOO to Go. Some basic stuff is working, lots of trial and error and trying again. Code is somewhat is flux.
+This is a port of LambdaMOO to Go. VM can do ADD and FORK, that's it basically.
