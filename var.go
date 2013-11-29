@@ -366,6 +366,18 @@ func (v Var) Eq(other Var) Var {
     }
 }
 
+func (v Var) In(other Var) Var {
+    if other.Type != LIST {
+        return NewErr(E_TYPE)
+    }
+    for i := 0; i < len(other.List); i++ {
+        if v.Eq(other.List[i]).IsTrue() {
+            return NewInt(1)
+        }
+    }
+    return NewInt(0)
+}
+
 func (v Var) Add(other Var) Var {
     return evalBinOp(addOp, v, other)
 }
@@ -401,6 +413,26 @@ func (v Var) IsTrue() bool {
     default:
         return false
     }
+}
+
+func (v Var) Or(other Var) Var {
+    if v.IsTrue() {
+        return NewInt(1)
+    }
+    if other.IsTrue() {
+        return NewInt(1)
+    }
+    return NewInt(0)
+}
+
+func (v Var) And(other Var) Var {
+    if !v.IsTrue() {
+        return NewInt(0)
+    }
+    if !other.IsTrue() {
+        return NewInt(0)
+    }
+    return NewInt(1)
 }
 
 func (e ErrorType) String() string {
