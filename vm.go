@@ -101,22 +101,8 @@ func toInt(bs []byte) int {
     return i
 }
 
-// This is the runtime channel. Multiple go-routines
-// will feed VM's into this channel using various ways.
-//
-// NOTE: VM pointers are NOT thread safe. Don't feed
-// them into this channel willy-nilly. Although small
-// in declaration, careful management of any pointers
-// going into this channel is very important.
-// 
-// NOTE: __The public API is (or should be) safe__.  
 var rt = make(chan *VM)
 
-// This is a hack to enable some kind of insight into
-// what the VM is doing (we can't output yet). 
-// 
-// Set it to 1 to have all the (intermediate) results 
-// logged with the standard log package.
 var LOG = 0
 
 func init() {
@@ -135,8 +121,6 @@ func Execute(prog *Program) {
     rt <- NewVM(prog, -1)
 }
 
-// Most executions will be started by delaying them 
-// for a few seconds.
 func Delay(prog *Program, seconds int) {
     exec(prog, seconds, -1)
 }
@@ -155,9 +139,6 @@ func suspend(vm *VM, seconds int) {
     }()
 }
 
-// This is the interpreter. It will go untill it 
-// finds a RET. It will then try to output some kind
-// of sensible Var.
 func run(vm *VM) Var {
     a, ok := vm.Pop()
     if !ok {
