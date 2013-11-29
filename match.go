@@ -29,7 +29,7 @@ func matchContents(p Objid, name string) (match Objid) {
         for e := contents.Front(); e != nil; e = e.Next() {
             oid := e.Value.(Objid)
             n := objects[oid].Name
-            if compare(n, name) == 0 {
+            if strcmp(n, name) == 0 {
                 return oid
             }
             if hasPrefix(n, name) {
@@ -57,10 +57,10 @@ func MatchObject(p Objid, name string) Objid {
     if !Valid(p) {
         return FailedMatch
     }
-    if compare(name, "me") == 0 {
+    if strcmp(name, "me") == 0 {
         return p
     }
-    if compare(name, "here") == 0 {
+    if strcmp(name, "here") == 0 {
         return ObjectLocation(p)
     }
     return matchContents(p, name)

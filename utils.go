@@ -4,6 +4,14 @@
 // Aki is a modern LambdaMOO clone.
 package main
 
+import (
+    "strconv"
+)
+
+func ftoa(f float32) string {
+    return strconv.FormatFloat(float64(f), 'f', -1, 32)
+}
+
 func hasPrefix(s, prefix string) bool {
     if len(prefix) > len(s) {
         return false
@@ -24,7 +32,7 @@ func hasPrefix(s, prefix string) bool {
     return true
 }
 
-func compare(str1 string, str2 string) int {
+func strcmp(str1 string, str2 string) int {
     lenstr1, lenstr2 := len(str1), len(str2)
     switch {
     case lenstr1 > lenstr2:

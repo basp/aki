@@ -12,7 +12,7 @@ func BenchmarkLongStrings(b *testing.B) {
     str1 := "abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz"
     str2 := "abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz"
     for i := 0; i < b.N; i++ {      
-        compare(str1, str2)
+        strcmp(str1, str2)
     }
 }
 
@@ -20,7 +20,7 @@ func BenchmarkShortStrings(b *testing.B) {
     str1 := "abcdefghijk"
     str2 := "abcdefghijk"
     for i := 0; i < b.N; i++ {
-        compare(str1, str2)
+        strcmp(str1, str2)
     }
 }
 
@@ -28,7 +28,7 @@ func BenchmarkDifferentLengthStrings(b *testing.B) {
     str1 := "abcdefg"
     str2 := "abc"
     for i := 0; i < b.N; i++ {
-        compare(str1, str2)
+        strcmp(str1, str2)
     }
 }
 
@@ -56,7 +56,7 @@ var cases = []cmp {
 
 func TestStringCompare(t *testing.T) {
     for _, c := range cases {
-        actual := compare(c.str1, c.str2)
+        actual := strcmp(c.str1, c.str2)
         if actual != c.expected {
             t.Error("Expected", c.expected, "but got", actual)
         }

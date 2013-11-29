@@ -47,23 +47,6 @@ type VM struct {
     Stack []*Activation
 }
 
-// Determines whether the specified opcode represents an optinum
-func IsOptinumOpcode(o byte) bool {
-    return int(o) >= OptinumStart
-}
-
-func OpcodeToOptinum(o byte) int {
-    return int(o) - OptinumStart + OptinumLo
-}
-
-func InOptinumRange(i int) bool {
-    return i >= OptinumLo && i <= OptinumHi
-}
-
-func OptinumToOpcode(i int) byte {
-    return byte(OptinumStart + i - OptinumLo)
-}
-
 func (a *Activation) Pop() (v Var, ok bool) {
     s := a.Stack
     if len(s) == 0 {
@@ -86,24 +69,47 @@ func (vm *VM) Pop() (a *Activation, ok bool) {
     return
 }
 
+func (vm *VM) Push(a *Activation) {
+    vm.Stack = append(vm.Stack, a)
+}
+
 func NewVM(prog *Program, vector int) *VM {
     vm := new(VM)
     vm.Push(&Activation{Prog: prog, Vector: vector})
     return vm
 }
 
-func (vm *VM) Push(a *Activation) {
-    vm.Stack = append(vm.Stack, a)
+func IsOptinumOpcode(o byte) bool {
+    return int(o) >= OptinumStart
 }
+
+func OpcodeToOptinum(o byte) int {
+    return int(o) - OptinumStart + OptinumLo
+}
+
+func InOptinumRange(i int) bool {
+    return i >= OptinumLo && i <= OptinumHi
+}
+
+func OptinumToOpcode(i int) byte {
+    return byte(OptinumStart + i - OptinumLo)
+}
+
+func Execute(prog *Program) {
+    rt <- NewVM(prog, -1)
+}
+
+func Delay(prog *Program, seconds int) {
+    exec(prog, seconds, -1)
+}
+
+var LOG = 0
+var rt = make(chan *VM)
 
 func toInt(bs []byte) int {
     i := int(bs[0]) << 24 | int(bs[1] << 16) | int(bs[2]) << 8 | int(bs[3])
     return i
 }
-
-var rt = make(chan *VM)
-
-var LOG = 0
 
 func init() {
     go func() {
@@ -115,14 +121,6 @@ func init() {
             }
         }
     }()
-}
-
-func Execute(prog *Program) {
-    rt <- NewVM(prog, -1)
-}
-
-func Delay(prog *Program, seconds int) {
-    exec(prog, seconds, -1)
 }
 
 func exec(prog *Program, delay int, vector int) {

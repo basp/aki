@@ -36,8 +36,8 @@ func main() {
         ADD,            
         RET,            // returns 2 * (slot 0 + slot 1)
     }
-    // This fork adds two Int vars from the IMM slots.
-    fork1 := []byte { 
+    // This fork adds two Float vars from the IMM slots.
+    fork0 := []byte { 
         IMM,
         0, 0, 0, 3,    
         IMM,
@@ -45,8 +45,8 @@ func main() {
         ADD,            
         RET,
     }
-    // This fork adds two Float vars from the IMM slots.
-    fork2 := []byte {
+    // This fork adds two Str vars from the IMM slots.
+    fork1 := []byte {
         IMM,
         0, 0, 0, 5,
         IMM,
@@ -55,7 +55,7 @@ func main() {
         RET,
     }
     // This fork adds two numbers in optinum range.
-    fork3 := []byte {
+    fork2 := []byte {
         OptinumToOpcode(2),
         OptinumToOpcode(3),
         ADD,
@@ -73,7 +73,7 @@ func main() {
     }
     prog := &Program {
         Main: main,
-        Forks: [][]byte { fork1, fork2, fork3 },
+        Forks: [][]byte { fork0, fork1, fork2 },
         Literals: literals,
     }
     Execute(prog)
