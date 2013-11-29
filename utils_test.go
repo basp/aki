@@ -62,3 +62,7 @@ func TestStringCompare(t *testing.T) {
         }
     }
 }
+
+func TestOptinum(t *testing.T) {
+
+}

@@ -23,18 +23,21 @@ func main() {
         FORK,
         0, 0, 0, 1,     // fork index 1
         0, 0, 0, 2,     
-        IMM,
+        FORK,
+        0, 0, 0, 2,     // fork index 2
+        0, 0, 0, 3,     // 1 second later as the other forks     
+        IMM,            // Add the same slots again
         0, 0, 0, 0,     
         IMM,
         0, 0, 0, 1,     
         ADD,
         SUSPEND,        
         0, 0, 0, 5,     // suspend 5 seconds
-        ADD,
-        RET,            // done
+        ADD,            
+        RET,            // returns 2 * (slot 0 + slot 1)
     }
-    // Both forks just execute simple ADD ops and return    
-    fork1 := []byte {
+    // This fork adds two Int vars from the IMM slots.
+    fork1 := []byte { 
         IMM,
         0, 0, 0, 3,    
         IMM,
@@ -42,11 +45,19 @@ func main() {
         ADD,            
         RET,
     }
+    // This fork adds two Float vars from the IMM slots.
     fork2 := []byte {
         IMM,
         0, 0, 0, 5,
         IMM,
         0, 0, 0, 6,
+        ADD,
+        RET,
+    }
+    // This fork adds two numbers in optinum range.
+    fork3 := []byte {
+        OptinumToOpcode(2),
+        OptinumToOpcode(3),
         ADD,
         RET,
     }
@@ -62,7 +73,7 @@ func main() {
     }
     prog := &Program {
         Main: main,
-        Forks: [][]byte { fork1, fork2 },
+        Forks: [][]byte { fork1, fork2, fork3 },
         Literals: literals,
     }
     Execute(prog)

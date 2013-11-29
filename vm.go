@@ -16,6 +16,14 @@ const (
     FORK
     SUSPEND
     RET
+    EXT
+)
+
+const (
+    OptinumStart = int(EXT) + 1
+    MaxOpcode = 255
+    OptinumLo = -10
+    OptinumHi = MaxOpcode - OptinumStart + OptinumLo
 )
 
 type Program struct {
@@ -37,6 +45,23 @@ const MainVector = -1
 
 type VM struct {
     Stack []*Activation
+}
+
+// Determines whether the specified opcode represents an optinum
+func IsOptinumOpcode(o byte) bool {
+    return int(o) >= OptinumStart
+}
+
+func OpcodeToOptinum(o byte) int {
+    return int(o) - OptinumStart + OptinumLo
+}
+
+func InOptinumRange(i int) bool {
+    return i >= OptinumLo && i <= OptinumHi
+}
+
+func OptinumToOpcode(i int) byte {
+    return byte(OptinumStart + i - OptinumLo)
 }
 
 func (a *Activation) Pop() (v Var, ok bool) {
@@ -76,9 +101,22 @@ func toInt(bs []byte) int {
     return i
 }
 
+// This is the runtime channel. Multiple go-routines
+// will feed VM's into this channel using various ways.
+//
+// NOTE: VM pointers are NOT thread safe. Don't feed
+// them into this channel willy-nilly. Although small
+// in declaration, careful management of any pointers
+// going into this channel is very important.
+// 
+// NOTE: __The public API is (or should be) safe__.  
 var rt = make(chan *VM)
-var out = make(chan Var)
 
+// This is a hack to enable some kind of insight into
+// what the VM is doing (we can't output yet). 
+// 
+// Set it to 1 to have all the (intermediate) results 
+// logged with the standard log package.
 var LOG = 0
 
 func init() {
@@ -97,28 +135,29 @@ func Execute(prog *Program) {
     rt <- NewVM(prog, -1)
 }
 
-func Enqueue(prog *Program, delay int) {
-    enqueue(prog, delay, -1)
+// Most executions will be started by delaying them 
+// for a few seconds.
+func Delay(prog *Program, seconds int) {
+    exec(prog, seconds, -1)
 }
 
-func enqueue(prog *Program, delay int, vector int) {
-    go func() {
-        if delay > 0 {
-            time.Sleep(time.Duration(delay) * time.Second)            
-        }
-        rt <- NewVM(prog, vector)
-    }()    
+func exec(prog *Program, delay int, vector int) {
+    vm := NewVM(prog, vector)
+    suspend(vm, delay)
 }
 
-func suspend(vm *VM, delay int) {
+func suspend(vm *VM, seconds int) {
     go func() {
-        if delay > 0 {
-            time.Sleep(time.Duration(delay) * time.Second)
+        if seconds > 0 {
+            time.Sleep(time.Duration(seconds) * time.Second)
         }        
         rt <- vm
     }()
 }
 
+// This is the interpreter. It will go untill it 
+// finds a RET. It will then try to output some kind
+// of sensible Var.
 func run(vm *VM) Var {
     a, ok := vm.Pop()
     if !ok {
@@ -147,26 +186,33 @@ func run(vm *VM) Var {
             a.Push(v1.Add(v2))
             continue
         case RET:
-            result, _ := a.Pop()
+            r, _ := a.Pop()
             a, ok := vm.Pop()
             if ok {
-                a.Push(result)
+                a.Push(r)
                 continue
             }
-            return result
+            return r
         case SUSPEND:
             d := toInt(v[a.PC:a.PC + 4])
             a.PC += 4
             vm.Push(a)
             suspend(vm, d)
-            return NewInt(0)
+            return NewInt(0) 
         case FORK:
             i := toInt(v[a.PC:a.PC + 4])
             a.PC += 4
             d := toInt(v[a.PC:a.PC + 4])
             a.PC += 4
-            enqueue(a.Prog, d, i)
+            exec(a.Prog, d, i)
             continue
+        default:
+            if IsOptinumOpcode(op) {
+                r := NewInt(OpcodeToOptinum(op))
+                a.Push(r)
+            } else {
+                panic("Unknown opcode!")
+            }
         }
     }    
 }
