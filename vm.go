@@ -9,23 +9,6 @@ import (
     "log"
 )
 
-const (
-    NOP byte = iota
-    IMM
-    ADD
-    FORK
-    SUSPEND
-    RET
-    EXT
-)
-
-const (
-    OptinumStart = int(EXT) + 1
-    MaxOpcode = 255
-    OptinumLo = -10
-    OptinumHi = MaxOpcode - OptinumStart + OptinumLo
-)
-
 type Program struct {
     Main []byte
     Forks [][]byte
@@ -79,22 +62,6 @@ func NewVM(prog *Program, vector int) *VM {
     return vm
 }
 
-func IsOptinumOpcode(o byte) bool {
-    return int(o) >= OptinumStart
-}
-
-func OpcodeToOptinum(o byte) int {
-    return int(o) - OptinumStart + OptinumLo
-}
-
-func InOptinumRange(i int) bool {
-    return i >= OptinumLo && i <= OptinumHi
-}
-
-func OptinumToOpcode(i int) byte {
-    return byte(OptinumStart + i - OptinumLo)
-}
-
 func Execute(prog *Program) {
     rt <- NewVM(prog, -1)
 }
@@ -137,6 +104,28 @@ func suspend(vm *VM, seconds int) {
     }()
 }
 
+var bifuncs = []func(Var, *Activation, *VM) (result Var, done bool) {
+    func(args Var, a *Activation, vm *VM) (Var, bool) {
+        if args.Type != LIST {
+            return NewErr(E_INVARG), false
+        }
+        if len(args.List) <= 0 {
+            return NewErr(E_INVARG), false
+        }
+        if d := args.List[0]; d.Type != INT {
+            return NewErr(E_INVARG), false
+        } else {
+            // We need to push back the current frame
+            // because it will be consumed (again) by
+            // the run function later.
+            vm.Push(a)
+            suspend(vm, d.Num)
+            return NewInt(d.Num), true
+        }
+        return NewErr(E_NONE), false
+    },
+}
+
 func run(vm *VM) Var {
     a, ok := vm.Pop()
     if !ok {
@@ -166,18 +155,29 @@ func run(vm *VM) Var {
             continue
         case RET:
             r, _ := a.Pop()
-            a, ok := vm.Pop()
-            if ok {
+            a, more := vm.Pop()
+            if more {
                 a.Push(r)
                 continue
             }
+            // We are done.
             return r
-        case SUSPEND:
-            d := toInt(v[a.PC:a.PC + 4])
-            a.PC += 4
-            vm.Push(a)
-            suspend(vm, d)
-            return NewInt(0) 
+        case MAKE_SINGLETON_LIST:
+            v, _ := a.Pop()
+            a.Push(NewList([]Var { v }))           
+        case BI_FUNC_CALL:
+            args, _ := a.Pop()
+            i := toInt(v[a.PC:a.PC + 4])
+            r, done := bifuncs[i](args, a, vm)
+            if done {
+                // Either we are really done, something
+                // went horribly wrong or the rest of our
+                // work has been put on the rt queue for
+                // later processing.
+                return NewErr(E_NONE)
+            }
+            a.Push(r)
+            continue
         case FORK:
             i := toInt(v[a.PC:a.PC + 4])
             a.PC += 4

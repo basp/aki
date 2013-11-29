@@ -13,28 +13,30 @@ func main() {
     // Main vector that has two forks and a suspend
     main := []byte {
         IMM,
-        0, 0, 0, 0,     // push slot 0 from literals
+        0, 0, 0, 0,             // push slot 0 from literals
         IMM,
-        0, 0, 0, 1,     // push slot 1 from literals
-        ADD,            // pop lhs and rhs from stack and push lhs + rhs
+        0, 0, 0, 1,             // push slot 1 from literals
+        ADD,                    // pop lhs and rhs from stack and push lhs + rhs
         FORK,           
-        0, 0, 0, 0,     // fork index 0
-        0, 0, 0, 2,     // delay for 2 seconds
+        0, 0, 0, 0,             // fork index 0
+        0, 0, 0, 2,             // delay for 2 seconds
         FORK,
-        0, 0, 0, 1,     // fork index 1
+        0, 0, 0, 1,             // fork index 1
         0, 0, 0, 2,     
         FORK,
-        0, 0, 0, 2,     // fork index 2
-        0, 0, 0, 3,     // 1 second later as the other forks     
-        IMM,            // Add the same slots again
+        0, 0, 0, 2,             // fork index 2
+        0, 0, 0, 3,             // 1 second later as the other forks     
+        IMM,                    // Add the same slots again
         0, 0, 0, 0,     
         IMM,
         0, 0, 0, 1,     
         ADD,
-        SUSPEND,        
-        0, 0, 0, 5,     // suspend 5 seconds
+        OptinumToOpcode(5),     // suspend for 5 seconds
+        MAKE_SINGLETON_LIST,    // make arglist with INT 5
+        BI_FUNC_CALL,
+        0, 0, 0, 0,             // builtin function at slot 0 (suspend)
         ADD,            
-        RET,            // returns 2 * (slot 0 + slot 1)
+        RET,                    // returns 2 * (slot 0 + slot 1)
     }
     // This fork adds two Float vars from the IMM slots.
     fork0 := []byte { 

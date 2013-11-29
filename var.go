@@ -443,6 +443,32 @@ func (e ErrorType) String() string {
             return "E_TYPE"
         case E_DIV:
             return "E_DIV"
+        case E_PERM:
+            return "E_PERM"
+        case E_PROPNF:
+            return "E_PROPNF"
+        case E_VERBNF:
+            return "E_VERBNF"
+        case E_VARNF:
+            return "E_VARNF"
+        case E_INVIND:
+            return "E_INVIND"
+        case E_RECMOVE:
+            return "E_RECMOVE"
+        case E_MAXREC:
+            return "E_MAXREC"
+        case E_RANGE:
+            return "E_RANGE"
+        case E_ARGS:
+            return "E_ARGS"
+        case E_NACC:
+            return "E_NACC"
+        case E_INVARG:
+            return "E_INVARG"
+        case E_QUOTA:
+            return "E_QUOTA"
+        case E_FLOAT:
+            return "E_FLOAT"
         default:
             return string(e)
     }
