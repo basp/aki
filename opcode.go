@@ -4,8 +4,10 @@
 // Aki is a LambdaMOO clone.
 package main
 
+type Opcode byte
+
 const (
-    NOP byte = iota
+    NOP Opcode = iota
     IF
     WHILE
     EIF
@@ -15,6 +17,7 @@ const (
     FOR_RANGE
     CALL_VERB
     BI_FUNC_CALL
+    REF
     MAKE_SINGLETON_LIST
     MUL
     DIV
@@ -31,6 +34,8 @@ const (
     OR
     NEG
     NOT
+    G_PUT
+    G_PUSH
     IMM
     MAKE_EMPTY_LIST
     LIST_ADD_TAIL
@@ -48,11 +53,11 @@ const (
     OptinumHi = MaxOpcode - OptinumStart + OptinumLo
 )
 
-func IsOptinumOpcode(o byte) bool {
+func IsOptinumOpcode(o Opcode) bool {
     return int(o) >= OptinumStart
 }
 
-func OpcodeToOptinum(o byte) int {
+func OpcodeToOptinum(o Opcode) int {
     return int(o) - OptinumStart + OptinumLo
 }
 
@@ -60,6 +65,7 @@ func InOptinumRange(i int) bool {
     return i >= OptinumLo && i <= OptinumHi
 }
 
-func OptinumToOpcode(i int) byte {
-    return byte(OptinumStart + i - OptinumLo)
+func OptinumToOpcode(i int) Opcode {
+    return Opcode(OptinumStart + i - OptinumLo)
 }
+

@@ -11,14 +11,28 @@ import (
 func main() {   
     LOG = 1
     // Main vector that has two forks and a suspend
-    main := []byte {
+    main := []Opcode {
         IMM,
         0, 0, 0, 0,             // push slot 0 from literals
         IMM,
         0, 0, 0, 1,             // push slot 1 from literals
         ADD,                    // pop lhs and rhs from stack and push lhs + rhs
+        IMM,
+        0, 0, 0, 7,             // OBJ
+        IMM,
+        0, 0, 0, 8,             // "print"
+        IMM,
+        0, 0, 0, 5,             // "bar"
+        MAKE_SINGLETON_LIST,
         CALL_VERB,
         POP,
+        IMM,
+        0, 0, 0, 7,             // OBJ
+        IMM,
+        0, 0, 0, 8,             // "print"
+        IMM,
+        0, 0, 0, 6,             // "foo"
+        MAKE_SINGLETON_LIST,
         CALL_VERB,
         POP,
         FORK,           
@@ -43,24 +57,18 @@ func main() {
         RETURN,                    // returns 2 * (slot 0 + slot 1)
     }
     // This fork adds two Float vars from the IMM slots.
-    fork0 := []byte { 
+    fork0 := []Opcode { 
         IMM,
         0, 0, 0, 3,    
         IMM,
         0, 0, 0, 4,    
         ADD,
-        CALL_VERB,
-        POP,
-        CALL_VERB,
-        POP,            
         RETURN,
     }
     // This fork adds two Str vars from the IMM slots.
-    fork1 := []byte {
+    fork1 := []Opcode {
         IMM,
         0, 0, 0, 5,
-        CALL_VERB,
-        POP,
         IMM,
         0, 0, 0, 6,
         ADD,
@@ -70,7 +78,7 @@ func main() {
         RETURN,
     }
     // This fork adds two numbers in optinum range.
-    fork2 := []byte {
+    fork2 := []Opcode {
         OptinumToOpcode(2),
         OptinumToOpcode(3),
         ADD,
@@ -85,10 +93,12 @@ func main() {
         NewFloat(3.0),
         NewStr("bar"),
         NewStr("foo"),
+        NewObj(0),
+        NewStr("print"),
     }
     prog := &Program {
         Main: main,
-        Forks: [][]byte { fork0, fork1, fork2 },
+        Forks: [][]Opcode { fork0, fork1, fork2 },
         Literals: literals,
     }
     Execute(prog)

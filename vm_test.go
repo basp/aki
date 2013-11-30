@@ -35,7 +35,7 @@ func TestPopEmpty(t *testing.T) {
 }
 
 func setupForTwoPlusThree() *Program{
-    code := []byte {
+    code := []Opcode {
         IMM,
         0, 0, 0, 0,
         IMM,

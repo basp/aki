@@ -503,3 +503,23 @@ func (t VarType) String() string {
 func (oid Objid) String() string {
     return fmt.Sprintf("#%v", int(oid))
 }
+
+func (v Var) String() string {
+    switch v.Type {
+    case INT: return fmt.Sprintf("%v", v.Num)
+    case FLOAT: return fmt.Sprintf("%v", v.Fnum)
+    case STR: return fmt.Sprintf("'%v'", v.Str)
+    case LIST: 
+        s := ""
+        for _, x := range v.List {
+            if len(s) > 0 {
+                s += ", "
+            }
+            s += fmt.Sprintf("%v", x)
+        }
+        return fmt.Sprintf("[%s]", s)
+    case OBJ: return fmt.Sprintf("%v", v.Obj)
+    case ERR: return fmt.Sprintf("%v", v.Err)
+    }
+    return fmt.Sprintf("%v", v)
+}

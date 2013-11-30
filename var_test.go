@@ -163,3 +163,23 @@ func TestAnd(t *testing.T) {
         }
     }
 }
+
+func TestStringer(t *testing.T) {
+    var s, expected string
+    expected = "123"
+    if s = NewInt(123).String(); s != expected {
+        t.Error("Expected 123 but got", s)
+    }
+    expected = "#123"
+    if s = NewObj(123).String(); s != expected {
+        t.Error("Expected", expected, "but got", s)
+    }
+    expected = "[123, 'foo']"
+    if s = NewList([]Var { NewInt(123), NewStr("foo") }).String(); s != expected {
+        t.Error("Expected", expected, "but got", s)
+    }
+    expected = "123.45"
+    if s = NewFloat(123.45).String(); s != expected {
+        t.Error("Expected", expected, "but got", s)
+    }
+}

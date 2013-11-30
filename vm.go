@@ -10,8 +10,8 @@ import (
 )
 
 type Program struct {
-    Main []byte
-    Forks [][]byte
+    Main []Opcode
+    Forks [][]Opcode
     Literals []Var
     VarNames []string
 }
@@ -30,6 +30,15 @@ type VM struct {
     Stack []*Activation
 }
 
+func (a *Activation) Peek() (v Var, ok bool ) {
+    s := a.Stack
+    if len(s) == 0 {
+        return
+    }
+    v, ok = s[len(s) - 1], true
+    return
+}
+
 func (a *Activation) Pop() (v Var, ok bool) {
     s := a.Stack
     if len(s) == 0 {
@@ -41,6 +50,15 @@ func (a *Activation) Pop() (v Var, ok bool) {
 
 func (a *Activation) Push(v Var) {
     a.Stack = append(a.Stack, v)
+}
+
+func (vm *VM) Peek() (a *Activation, ok bool) {
+    s := vm.Stack
+    if len(s) == 0 {
+        return
+    }
+    a, ok = s[len(s) - 1], true
+    return 
 }
 
 func (vm *VM) Pop() (a *Activation, ok bool) {
@@ -77,7 +95,7 @@ func Delay(prog *Program, seconds int) {
 var LOG = 0
 var rt = make(chan *VM)
 
-func toInt(bs []byte) int {
+func toInt(bs []Opcode) int {
     i := int(bs[0]) << 24 
     i |= int(bs[1] << 16) 
     i |= int(bs[2]) << 8 
@@ -116,7 +134,7 @@ func run(vm *VM) Var {
     if !ok {
         log.Fatal("No activation frames")
     }
-    var v []byte
+    var v []Opcode
     for {
         switch a.Vector {
         case MainVector: v = a.Prog.Main
@@ -138,7 +156,7 @@ func run(vm *VM) Var {
         case MAKE_EMPTY_LIST:
             a.Push(NewList([]Var { }))
             continue
-        case ADD, SUB, MUL, DIV, MOD:
+        case ADD, SUB, MUL, DIV, MOD, AND, OR:
             v1, _ := a.Pop()
             v2, _ := a.Pop()
             var r Var
@@ -148,8 +166,33 @@ func run(vm *VM) Var {
             case MUL: r = v1.Mul(v2)
             case DIV: r = v1.Div(v2)
             case MOD: r = v1.Mod(v2)
+            case AND: r = v1.And(v2)
+            case OR: r = v1.Or(v2)
             }
             a.Push(r)
+            continue
+        case REF:
+            var i, l Var
+            if i, _ = a.Pop(); i.Type != INT {
+                return NewErr(E_TYPE)
+            }
+            if l, _ = a.Pop(); l.Type != LIST {
+                return NewErr(E_TYPE)
+            }
+            if i.Num >= len(l.List) {
+                return NewErr(E_RANGE)
+            }
+            a.Push(l.List[i.Num])
+            continue
+        case G_PUT:
+            i := toInt(v[a.PC:a.PC + 4])
+            a.PC += 4
+            a.Env[i], _ = a.Peek()
+            continue
+        case G_PUSH:
+            i := toInt(v[a.PC:a.PC + 4])
+            a.PC += 4
+            a.Push(a.Env[i])
             continue
         case RETURN, RETURN0:
             var r Var
@@ -157,6 +200,10 @@ func run(vm *VM) Var {
             case RETURN: r, _ = a.Pop()
             case RETURN0: r = NewInt(0)
             }
+            // Note: a, more := vm.Pop() seemed to screw up
+            // (a was in limited scope it seemd) so we're 
+            // re-using the ok variable here which seems to 
+            // work much better.
             a, ok = vm.Pop()
             if ok {
                 a.Push(r)
@@ -165,8 +212,20 @@ func run(vm *VM) Var {
             // We are done.
             return r
         case CALL_VERB:
+            var args, verb, obj Var
+            if args, _ = a.Pop(); args.Type != LIST {
+                return NewErr(E_TYPE)
+            }
+            if verb, _ = a.Pop(); verb.Type != STR {
+                return NewErr(E_TYPE)
+            }
+            if obj, _ = a.Pop(); obj.Type != OBJ {
+                return NewErr(E_TYPE)
+            }
             vm.Push(a)
-            a = NewActivation(printFoo, MainVector)
+            p := getProgTemp(obj.Obj, verb.Str)
+            a = NewActivation(p, MainVector)
+            a.Env = append(a.Env, args)
             continue
         case MAKE_SINGLETON_LIST:
             v, _ := a.Pop()
@@ -202,8 +261,15 @@ func run(vm *VM) Var {
     }    
 }
 
+func getProgTemp(id Objid, verb string) *Program {
+    if verb != "print" {
+        log.Fatalf("Unknown verb: %v", verb)        
+    }
+    return printFoo
+}
+
 var printFoo = &Program{
-    Main: []byte {
+    Main: []Opcode {
         IMM,
         0, 0, 0, 0,
         MAKE_SINGLETON_LIST,
@@ -212,8 +278,26 @@ var printFoo = &Program{
         RETURN0,
     },
     Literals: []Var {
-        NewStr("foo"),
+        NewStr("foo (from 'printFoo')"),
     },
+}
+
+var printBar = &Program {
+    Main: []Opcode {
+        IMM,
+        0, 0, 0, 0,
+        MAKE_SINGLETON_LIST,
+        BI_FUNC_CALL,
+        0, 0, 0, 1,
+        RETURN0,
+    },
+    Literals: []Var {
+        NewStr("bar"),
+    },
+}
+
+func bf_tostr(args Var, a *Activation, vm *VM) (Var, bool) {
+    return NewErr(E_NONE), false
 }
 
 func bf_suspend(args Var, a *Activation, vm *VM) (Var, bool) {
@@ -240,7 +324,7 @@ func bf_notify(args Var, a *Activation, vm *VM) (Var, bool) {
     if m := args.List[0]; m.Type != STR {
         return NewErr(E_INVARG), false
     } else {
-        log.Println(m.Str)
+        log.Printf("NOTIFY: %s", m.Str)
         return m, false
     }
     return NewErr(E_NONE), false
@@ -249,4 +333,5 @@ func bf_notify(args Var, a *Activation, vm *VM) (Var, bool) {
 var bifuncs = []func(Var, *Activation, *VM) (result Var, done bool) {
     bf_suspend,
     bf_notify,
+    bf_tostr,
 }
