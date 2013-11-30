@@ -1,7 +1,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// Aki is a modern LambdaMOO clone.
+// Aki is a LambdaMOO clone.
 package main
 
 import (
@@ -84,15 +84,3 @@ func main() {
     Execute(prog)
     _, _ = fmt.Scanln()
 }
-
-// Output
-// ------
-// Suspend main:
-//      2013/11/28 23:53:34 => {0 0  [] 0 0 0}
-//
-// Fork 0 and 1 finish at the same time:
-//      2013/11/28 23:53:36 => {0 5  [] 0 0 1}
-//      2013/11/28 23:53:36 => {0 0 foobar [] 0 0 2}
-//
-// Main finishes (after suspend):
-//      2013/11/28 23:53:39 => {492 0  [] 0 0 0}
