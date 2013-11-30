@@ -56,9 +56,13 @@ func (vm *VM) Push(a *Activation) {
     vm.Stack = append(vm.Stack, a)
 }
 
+func NewActivation(prog *Program, vector int) *Activation {
+    return &Activation{Prog: prog, Vector: vector}
+}
+
 func NewVM(prog *Program, vector int) *VM {
     vm := new(VM)
-    vm.Push(&Activation{Prog: prog, Vector: vector})
+    vm.Push(NewActivation(prog, vector))
     return vm
 }
 
@@ -110,40 +114,59 @@ func suspend(vm *VM, seconds int) {
 func run(vm *VM) Var {
     a, ok := vm.Pop()
     if !ok {
-        panic("VM needs at least one activation frame!")
+        log.Fatal("No activation frames")
     }
     var v []byte
-    if a.Vector == MainVector {
-        v = a.Prog.Main
-    } else {
-        v = a.Prog.Forks[a.Vector]
-    }
     for {
+        switch a.Vector {
+        case MainVector: v = a.Prog.Main
+        default: v = a.Prog.Forks[a.Vector]
+        }
         op := v[a.PC]
         a.PC++
         switch op {
         case NOP:
             continue
+        case POP:
+            a.Pop()
+            continue;
         case IMM:
             i := toInt(v[a.PC:a.PC + 4])
             a.PC += 4
             a.Push(a.Prog.Literals[i])
             continue
-        case ADD:
+        case MAKE_EMPTY_LIST:
+            a.Push(NewList([]Var { }))
+            continue
+        case ADD, SUB, MUL, DIV, MOD:
             v1, _ := a.Pop()
             v2, _ := a.Pop()
-            a.Push(v1.Add(v2))
+            var r Var
+            switch op {
+            case ADD: r = v1.Add(v2)
+            case SUB: r = v1.Sub(v2)
+            case MUL: r = v1.Mul(v2)
+            case DIV: r = v1.Div(v2)
+            case MOD: r = v1.Mod(v2)
+            }
+            a.Push(r)
             continue
-        case RET:
-            r, _ := a.Pop()
-            a, more := vm.Pop()
-            if more {
+        case RETURN, RETURN0:
+            var r Var
+            switch op {
+            case RETURN: r, _ = a.Pop()
+            case RETURN0: r = NewInt(0)
+            }
+            a, ok = vm.Pop()
+            if ok {
                 a.Push(r)
                 continue
             }
             // We are done.
             return r
         case CALL_VERB:
+            vm.Push(a)
+            a = NewActivation(printFoo, MainVector)
             continue
         case MAKE_SINGLETON_LIST:
             v, _ := a.Pop()
@@ -169,14 +192,28 @@ func run(vm *VM) Var {
             exec(a.Prog, d, i)
             continue
         default:
-            if IsOptinumOpcode(op) {
-                r := NewInt(OpcodeToOptinum(op))
-                a.Push(r)
-            } else {
+            if !IsOptinumOpcode(op) {
                 log.Fatalf("Unknown opcode: %v", op)
             }
+            r := NewInt(OpcodeToOptinum(op))
+            a.Push(r)
+            continue
         }
     }    
+}
+
+var printFoo = &Program{
+    Main: []byte {
+        IMM,
+        0, 0, 0, 0,
+        MAKE_SINGLETON_LIST,
+        BI_FUNC_CALL,
+        0, 0, 0, 1,
+        RETURN0,
+    },
+    Literals: []Var {
+        NewStr("foo"),
+    },
 }
 
 func bf_suspend(args Var, a *Activation, vm *VM) (Var, bool) {

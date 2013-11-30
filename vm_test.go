@@ -41,7 +41,7 @@ func setupForTwoPlusThree() *Program{
         IMM,
         0, 0, 0, 1,
         ADD,
-        RET,
+        RETURN,
     }
     literals := []Var {
         Var{Num:2},

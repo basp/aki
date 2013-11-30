@@ -17,6 +17,10 @@ func main() {
         IMM,
         0, 0, 0, 1,             // push slot 1 from literals
         ADD,                    // pop lhs and rhs from stack and push lhs + rhs
+        CALL_VERB,
+        POP,
+        CALL_VERB,
+        POP,
         FORK,           
         0, 0, 0, 0,             // fork index 0
         0, 0, 0, 2,             // delay for 2 seconds
@@ -36,7 +40,7 @@ func main() {
         BI_FUNC_CALL,
         0, 0, 0, 0,             // builtin function at slot 0 (suspend)
         ADD,            
-        RET,                    // returns 2 * (slot 0 + slot 1)
+        RETURN,                    // returns 2 * (slot 0 + slot 1)
     }
     // This fork adds two Float vars from the IMM slots.
     fork0 := []byte { 
@@ -44,27 +48,33 @@ func main() {
         0, 0, 0, 3,    
         IMM,
         0, 0, 0, 4,    
-        ADD,            
-        RET,
+        ADD,
+        CALL_VERB,
+        POP,
+        CALL_VERB,
+        POP,            
+        RETURN,
     }
     // This fork adds two Str vars from the IMM slots.
     fork1 := []byte {
         IMM,
         0, 0, 0, 5,
+        CALL_VERB,
+        POP,
         IMM,
         0, 0, 0, 6,
         ADD,
         MAKE_SINGLETON_LIST,
         BI_FUNC_CALL,
         0, 0, 0, 1,             // builtin function at slot 1 (notify)
-        RET,
+        RETURN,
     }
     // This fork adds two numbers in optinum range.
     fork2 := []byte {
         OptinumToOpcode(2),
         OptinumToOpcode(3),
         ADD,
-        RET,
+        RETURN,
     }
     // Load all the stuff that is used by the IMM instructions
     literals := []Var {

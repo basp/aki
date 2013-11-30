@@ -16,7 +16,7 @@ const (
     CALL_VERB
     BI_FUNC_CALL
     MAKE_SINGLETON_LIST
-    MULT
+    MUL
     DIV
     MOD
     ADD
@@ -35,7 +35,9 @@ const (
     MAKE_EMPTY_LIST
     LIST_ADD_TAIL
     LIST_APPEND
-    RET
+    RETURN
+    RETURN0
+    POP
     EXT
 )
 
