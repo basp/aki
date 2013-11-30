@@ -13,10 +13,10 @@ type Objid int
 
 type VarType int
 
-type ErrorType int
+type Error int
 
 const (
-    E_NONE ErrorType = iota
+    E_NONE Error = iota
     E_TYPE
     E_DIV
     E_PERM
@@ -53,7 +53,7 @@ type Var struct {
     Str string
     List []Var
     Obj Objid
-    Err ErrorType
+    Err Error
     Type VarType
 }
 
@@ -281,7 +281,7 @@ func NewObj(v Objid) Var {
     return Var{Obj: v, Type: OBJ}
 }
 
-func NewErr(v ErrorType) Var {
+func NewErr(v Error) Var {
     return Var{Err: v, Type: ERR}
 }
 
@@ -435,7 +435,7 @@ func (v Var) And(other Var) Var {
     return NewInt(1)
 }
 
-func (e ErrorType) String() string {
+func (e Error) String() string {
     switch e {
         case E_NONE: 
             return "E_NONE"

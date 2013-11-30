@@ -54,6 +54,9 @@ func main() {
         IMM,
         0, 0, 0, 6,
         ADD,
+        MAKE_SINGLETON_LIST,
+        BI_FUNC_CALL,
+        0, 0, 0, 1,             // builtin function at slot 1 (notify)
         RET,
     }
     // This fork adds two numbers in optinum range.

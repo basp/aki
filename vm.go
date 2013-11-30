@@ -74,7 +74,10 @@ var LOG = 0
 var rt = make(chan *VM)
 
 func toInt(bs []byte) int {
-    i := int(bs[0]) << 24 | int(bs[1] << 16) | int(bs[2]) << 8 | int(bs[3])
+    i := int(bs[0]) << 24 
+    i |= int(bs[1] << 16) 
+    i |= int(bs[2]) << 8 
+    i |= int(bs[3])
     return i
 }
 
@@ -102,28 +105,6 @@ func suspend(vm *VM, seconds int) {
         }        
         rt <- vm
     }()
-}
-
-var bifuncs = []func(Var, *Activation, *VM) (result Var, done bool) {
-    func(args Var, a *Activation, vm *VM) (Var, bool) {
-        if args.Type != LIST {
-            return NewErr(E_INVARG), false
-        }
-        if len(args.List) <= 0 {
-            return NewErr(E_INVARG), false
-        }
-        if d := args.List[0]; d.Type != INT {
-            return NewErr(E_INVARG), false
-        } else {
-            // We need to push back the current frame
-            // because it will be consumed (again) by
-            // the run function later.
-            vm.Push(a)
-            suspend(vm, d.Num)
-            return NewInt(d.Num), true
-        }
-        return NewErr(E_NONE), false
-    },
 }
 
 func run(vm *VM) Var {
@@ -162,19 +143,21 @@ func run(vm *VM) Var {
             }
             // We are done.
             return r
+        case CALL_VERB:
+            continue
         case MAKE_SINGLETON_LIST:
             v, _ := a.Pop()
             a.Push(NewList([]Var { v }))           
         case BI_FUNC_CALL:
             args, _ := a.Pop()
+            if args.Type != LIST {
+                return NewErr(E_INVARG)
+            }
             i := toInt(v[a.PC:a.PC + 4])
-            r, done := bifuncs[i](args, a, vm)
-            if done {
-                // Either we are really done, something
-                // went horribly wrong or the rest of our
-                // work has been put on the rt queue for
-                // later processing.
-                return NewErr(E_NONE)
+            a.PC += 4
+            r, suspended := bifuncs[i](args, a, vm)
+            if suspended {
+                return r
             }
             a.Push(r)
             continue
@@ -190,8 +173,43 @@ func run(vm *VM) Var {
                 r := NewInt(OpcodeToOptinum(op))
                 a.Push(r)
             } else {
-                panic("Unknown opcode!")
+                log.Fatalf("Unknown opcode: %v", op)
             }
         }
     }    
+}
+
+func bf_suspend(args Var, a *Activation, vm *VM) (Var, bool) {
+    if len(args.List) <= 0 {
+        return NewErr(E_INVARG), false
+    }
+    if d := args.List[0]; d.Type != INT {
+        return NewErr(E_INVARG), false
+    } else {
+        // We need to push back the current frame
+        // because it will be consumed (again) by
+        // the run function later.
+        vm.Push(a)
+        suspend(vm, d.Num)
+        return d, true
+    }
+    return NewErr(E_NONE), false    
+}
+
+func bf_notify(args Var, a *Activation, vm *VM) (Var, bool) {
+    if len(args.List) <= 0 {
+        return NewErr(E_INVARG), false
+    }
+    if m := args.List[0]; m.Type != STR {
+        return NewErr(E_INVARG), false
+    } else {
+        log.Println(m.Str)
+        return m, false
+    }
+    return NewErr(E_NONE), false
+}
+
+var bifuncs = []func(Var, *Activation, *VM) (result Var, done bool) {
+    bf_suspend,
+    bf_notify,
 }
